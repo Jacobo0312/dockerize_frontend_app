@@ -4,4 +4,5 @@ declare global {
     }
 }
 
-export const ENV_TEST = import.meta.env.ENV_TEST ?? window._env_.ENV_TEST;
+export const STAGE = import.meta.env.STAGE ?? window._env_.STAGE;
+export const API_URL = import.meta.env.API_URL ?? window._env_.API_URL;

@@ -7,6 +7,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./src:/app/src
-      - /Users/jacobo0312/Desktop/QUANTIL/ENV/front.env.js:/var/www/app/config/front.env.js 
     ports:
       - "3000:80"
+    environment:
+      - STAGE=PROD
+      - API_URL=http://example.com/api

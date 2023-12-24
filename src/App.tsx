@@ -1,7 +1,7 @@
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
-import { ENV_TEST } from "./config/constants";
+import { STAGE, API_URL } from "./config/constants";
 
 function App() {
   return (
@@ -14,7 +14,8 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
-      <h1>ENV: {ENV_TEST}</h1>
+      <h1>STAGE: {STAGE}</h1>
+      <h1>API_URL: {API_URL}</h1>
     </>
   );
 }
