@@ -9,7 +9,7 @@ This README details the process of dockerizing a frontend application, specifica
 1. **Index.html Modification**:
     - In `index.html`, insert a placeholder comment for environment variables. This comment will be replaced during the build process.
     
-    ![index.html Screenshot](image URL here)
+<img width="711" alt="INDEX_IMAGE" src="https://github.com/Jacobo0312/dockerize_frontend_app/assets/72984810/7855a87c-b34b-480e-b85e-99539d95788d">
 
 2. **Vite Configuration**:
     - In `vite.config.ts`, create a plugin function that replaces the placeholder in `index.html` with a JavaScript file containing the environment variables.
@@ -54,38 +54,124 @@ This README details the process of dockerizing a frontend application, specifica
 4. **Verifying Environment Variables**:
     - Ensure the environment variables are correctly set up in the application.
 
-    ![src/App.tsx Screenshot](image URL here)
+    <img width="1039" alt="APP_TSX_IMAGE" src="https://github.com/Jacobo0312/dockerize_frontend_app/assets/72984810/e454d866-1bef-4a81-8a55-f9628701ea5c">
 
 5. **Nginx Configuration**:
     - Create `default.conf` for the Nginx server in the `etc/config` directory.
 
-    ```json
-    // Nginx server configuration
-    [Nginx server configuration content]
+    ```javascript
+    server {
+        listen   80;
+        listen   [::]:80 default ipv6only=on;
+    
+        location / {
+            root  /var/www/app/;
+            index  index.html;
+            try_files $uri $uri/ /index.html;
+    }
+
+    server_tokens  off;
+    server_name _;
+
+    gzip on;
+    gzip_disable "msie6";
+
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_min_length 0;
+    gzip_types text/plain application/javascript text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/vnd.ms-        fontobject application/x-font-ttf font/opentype;
+
+    error_page 500 502 503 504 /50x.html;
+
+    location = /50x.html {
+        root  /var/www/app/;
+        }
+
+    }
     ```
 
 6. **Startup Script**:
     - Develop a `start.sh` script to generate `front.env.js` with environment variables provided by the CI/CD pipeline.
 
     ```bash
-    # Startup script to configure environment variables
-    [start.sh script content]
+    #!/bin/sh
+
+    # List of environment variables
+    ENV_VARS="STAGE API_URL"
+    
+    echo "Configuring environment variables..."
+    
+    mkdir -p /var/www/app/config/
+    
+    echo 'window._env_ = {' > /var/www/app/config/front.env.js
+    
+    # Iterate over the environment variables and add them to the file
+    for prefix in $ENV_VARS; do
+      for var in $(env | grep -E "^$prefix" | awk -F= '{print $1}'); do
+        value=$(eval echo "\$$var")  # Get the value of the variable
+        echo "    $var: \"$value\"," >> /var/www/app/config/front.env.js
+      done
+    done
+    
+    echo "};" >> /var/www/app/config/front.env.js
+    
+    echo "Starting Nginx..."
+    
+    nginx -g "daemon off;"
     ```
 
 7. **Dockerfile Creation**:
     - Create a Dockerfile to build and run the application.
 
     ```docker
-    # Dockerfile for building and running the application
-    [Dockerfile content]
+    FROM node:20-slim AS build
+    
+    WORKDIR /app
+    
+    COPY package*.json  ./
+    
+    RUN npm ci
+    
+    COPY . .
+    
+    RUN npm run build
+    
+    FROM nginx:1.19-alpine AS server
+    
+    COPY ./etc/default.conf /etc/nginx/conf.d/default.conf
+    
+    COPY --from=build /app/dist /var/www/app/
+    
+    COPY start.sh /start.sh
+    
+    RUN chmod +x /start.sh
+    
+    EXPOSE 80
+    
+    CMD ["/start.sh"]
     ```
 
 8. **Docker Compose for Simulation**:
     - Use Docker Compose to simulate a CI/CD environment.
 
     ```yaml
-    # Docker Compose configuration for CI/CD simulation
-    [Docker Compose YAML content]
+    version: "3"
+
+    services:
+      app:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        volumes:
+          - ./src:/app/src
+        ports:
+          - "3000:80"
+        environment:
+          - STAGE=QAS
+          - API_URL=http://example.qas.com/api
     ```
 
 9. **Running Docker Compose**:
@@ -94,13 +180,29 @@ This README details the process of dockerizing a frontend application, specifica
     ```powershell
     - docker-compose up
     ```
+<img width="1440" alt="STAGE_QAS" src="https://github.com/Jacobo0312/dockerize_frontend_app/assets/72984810/eedd26d9-c1ba-4957-a85b-47e7b5b70844">
 
-    ![Docker Compose Execution Screenshot](image URL here)
 
 ## Changing Environment Variables
 
 To alter environment variables, modify the Docker Compose file accordingly:
 
 ```yaml
-# Docker Compose configuration with different environment variables
-[Docker Compose YAML content for different environment variables]
+version: "3"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "3000:80"
+    environment:
+      - STAGE=PROD
+      - API_URL=http://example.com/api
+```
+
+<img width="1440" alt="STAGE_PROD" src="https://github.com/Jacobo0312/dockerize_frontend_app/assets/72984810/6bd961af-98e1-4d55-b09d-a23a01e1a072">
+
